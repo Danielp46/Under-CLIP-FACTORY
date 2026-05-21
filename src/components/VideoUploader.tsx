@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { Upload, Film, AlertCircle, Loader2, Zap, Subtitles } from 'lucide-react';
+import { Upload, Film, AlertCircle, Loader2, Zap, Subtitles, Settings2, Ratio } from 'lucide-react';
 import axios from 'axios';
 import clsx from 'clsx';
 import type { ClipSettings, Job } from '@/app/page';
@@ -348,6 +348,65 @@ export default function VideoUploader({ settings, onSettingsChange, onJobCreated
             </div>
           </div>
         </div>
+      </Section>
+
+      {/* ── Clip parameters ──────────────────────────────────────── */}
+      <Section title="Parámetros de Clips" icon={Settings2}>
+        <Field label="Número máximo de clips" hint={`${settings.maxClips} clips`}>
+          <input
+            type="range" min={1} max={20} value={settings.maxClips}
+            onChange={e => set('maxClips', parseInt(e.target.value))}
+            className="w-full accent-brand-500"
+          />
+          <div className="flex justify-between text-xs text-gray-600 font-mono mt-1">
+            <span>1</span><span>5</span><span>10</span><span>15</span><span>20</span>
+          </div>
+        </Field>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Duración mínima" hint={`${settings.minDuration}s`}>
+            <input
+              type="range" min={10} max={60} value={settings.minDuration}
+              onChange={e => set('minDuration', parseInt(e.target.value))}
+              className="w-full accent-brand-500"
+            />
+          </Field>
+          <Field label="Duración máxima" hint={`${settings.maxDuration}s`}>
+            <input
+              type="range" min={30} max={180} value={settings.maxDuration}
+              onChange={e => set('maxDuration', parseInt(e.target.value))}
+              className="w-full accent-brand-500"
+            />
+          </Field>
+        </div>
+      </Section>
+
+      {/* ── Format ───────────────────────────────────────────────── */}
+      <Section title="Formato de Salida" icon={Ratio}>
+        <Field label="Relación de aspecto">
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              ['9:16', 'TikTok / Reels', '📱'],
+              ['1:1',  'Instagram',      '⬛'],
+              ['4:5',  'Feed',           '🖼️'],
+            ] as const).map(([ratio, label, emoji]) => (
+              <button
+                key={ratio}
+                type="button"
+                onClick={() => set('aspectRatio', ratio as any)}
+                className={`py-3 rounded-lg text-center transition-all border ${
+                  settings.aspectRatio === ratio
+                    ? 'bg-brand-500/20 border-brand-500/50'
+                    : 'bg-surface-700 border-white/5 hover:border-white/10'
+                }`}
+              >
+                <div className="text-xl mb-1">{emoji}</div>
+                <div className={`text-xs font-bold ${settings.aspectRatio === ratio ? 'text-brand-300' : 'text-gray-400'}`}>{ratio}</div>
+                <div className="text-[10px] text-gray-600">{label}</div>
+              </button>
+            ))}
+          </div>
+        </Field>
       </Section>
 
       {/* Action button */}
