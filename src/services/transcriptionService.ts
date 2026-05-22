@@ -27,6 +27,8 @@ export interface Transcription {
   duration: number;
 }
 
+export type SupportedTranscriptionLanguage = 'es' | 'en' | 'auto';
+
 // ── AUDIO EXTRACTION ─────────────────────────────────────────────
 async function extractAudio(videoPath: string): Promise<string> {
   const tmpDir = path.join(process.cwd(), 'tmp', 'audio');
@@ -233,4 +235,11 @@ export async function getTranscription(
     case 'openrouter': return transcribeWithGemini(videoPath, language); // Fallback to Gemini for transcription
     default:        return transcribeWithGemini(videoPath, language);
   }
+}
+
+export async function getGroqTranscription(
+  videoPath: string,
+  language: SupportedTranscriptionLanguage
+): Promise<Transcription> {
+  return transcribeWithGroq(videoPath, language);
 }

@@ -6,7 +6,7 @@
 
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
-import { getTranscription } from './transcriptionService';
+import { getTranscription, getVideoDuration } from './transcriptionService';
 import { analyzeClips } from './aiManager';
 import { renderClip } from './ffmpegService';
 import { v4 as uuidv4 } from 'uuid';
@@ -15,6 +15,8 @@ export interface ProcessingSettings {
   maxClips: number;
   minDuration: number;
   maxDuration: number;
+  isFullVideo?: boolean;
+  speed?: number;
   aspectRatio: '9:16' | '1:1' | '4:5';
   subtitleStyle: 'dynamic' | 'static' | 'none';
   subtitleSize?: 'Mediana' | 'Grande';
@@ -69,6 +71,8 @@ export async function processVideo(
     maxClips:      settings.maxClips      ?? 5,
     minDuration:   settings.minDuration   ?? 30,
     maxDuration:   settings.maxDuration   ?? 90,
+    isFullVideo:   settings.isFullVideo   ?? false,
+    speed:         settings.speed         ?? 1,
     aspectRatio:   settings.aspectRatio   ?? '9:16',
     subtitleStyle: settings.subtitleStyle ?? 'dynamic',
     subtitleSize:  settings.subtitleSize  ?? 'Mediana',
@@ -92,7 +96,18 @@ export async function processVideo(
     await updateJobFile(jobId, { status: 'analyzing', progress: 45 });
     console.log(`[${jobId}] Analyzing clips with AI...`);
 
-    const segments = await analyzeClips(transcription, cfg);
+    const segments = cfg.isFullVideo
+      ? [{
+          id: '',
+          title: 'Video completo',
+          startTime: 0,
+          endTime: await getVideoDuration(videoPath),
+          score: 1,
+          transcript: transcription.fullText,
+          transcriptSegments: transcription.segments,
+          keywords: [],
+        }]
+      : await analyzeClips(transcription, cfg);
     await updateJobFile(jobId, { progress: 65 });
 
     // ── STEP 3: Render clips with FFmpeg ──────────────────────────
@@ -123,6 +138,7 @@ export async function processVideo(
         subtitlesPreset: cfg.subtitlesPreset,
         subtitleSize: cfg.subtitleSize,
         isUppercase: cfg.isUppercase,
+        speed: cfg.speed,
       });
 
       renderedClips.push({ ...seg, id: clipId, outputPath, keywords: seg.keywords || [] });

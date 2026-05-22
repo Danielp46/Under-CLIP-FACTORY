@@ -1,9 +1,9 @@
 'use client';
 
-import { Upload, List, Settings, Scissors, ChevronRight } from 'lucide-react';
+import { Upload, List, Settings, Scissors, ChevronRight, Captions } from 'lucide-react';
 import clsx from 'clsx';
 
-type Tab = 'upload' | 'queue' | 'settings';
+type Tab = 'upload' | 'editor' | 'queue' | 'settings';
 
 interface SidebarProps {
   activeTab: Tab;
@@ -12,15 +12,15 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { id: 'upload' as Tab,   label: 'Subir Vídeo',   icon: Upload,   desc: 'Importa tu vídeo' },
-  { id: 'queue'  as Tab,   label: 'Cola de Clips',  icon: List,     desc: 'Trabajos activos' },
-  { id: 'settings' as Tab, label: 'Configuración',  icon: Settings, desc: 'IA y ajustes' },
+  { id: 'upload' as Tab, label: 'Generar Short', icon: Upload, desc: 'Importa tu video' },
+  { id: 'editor' as Tab, label: 'Editor de video', icon: Captions, desc: 'Extrae subtitulos SRT' },
+  { id: 'queue' as Tab, label: 'Cola de Clips', icon: List, desc: 'Trabajos activos' },
+  { id: 'settings' as Tab, label: 'Configuracion', icon: Settings, desc: 'IA y ajustes' },
 ];
 
 export default function Sidebar({ activeTab, onTabChange, jobCount }: SidebarProps) {
   return (
     <aside className="w-56 h-full flex flex-col glass-strong border-r border-white/5 shrink-0">
-      {/* Logo zone */}
       <div className="px-4 py-5 border-b border-white/5">
         <div className="flex items-center gap-2">
           <Scissors size={18} className="text-brand-400" />
@@ -28,7 +28,6 @@ export default function Sidebar({ activeTab, onTabChange, jobCount }: SidebarPro
         </div>
       </div>
 
-      {/* Nav items */}
       <nav className="flex-1 p-3 space-y-1">
         {navItems.map(({ id, label, icon: Icon, desc }) => {
           const isActive = activeTab === id;
@@ -68,7 +67,6 @@ export default function Sidebar({ activeTab, onTabChange, jobCount }: SidebarPro
         })}
       </nav>
 
-      {/* Footer info */}
       <div className="p-4 border-t border-white/5">
         <div className="text-[10px] text-gray-600 space-y-1 font-mono">
           <p className="flex justify-between">

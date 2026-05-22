@@ -60,6 +60,7 @@ function buildTextBlocks(
   fallbackTranscript: string,
   duration: number,
   clipStartTime: number,
+  speed: number,
   isUppercase: boolean,
   subtitlesPreset: string | undefined,
 ): TextBlock[] {
@@ -80,13 +81,13 @@ function buildTextBlocks(
 
       for (let i = 0; i < words.length; i++) {
         const word = words[i];
-        const adjStart = Math.max(0, Number(segStart + i * wordDur) - Number(clipStartTime));
+        const adjStart = Math.max(0, (Number(segStart + i * wordDur) - Number(clipStartTime)) / speed);
         const adjEnd = Math.min(
-          Math.max(0, Number(segStart + (i + 1) * wordDur) - Number(clipStartTime)),
-          Number(duration) - 0.1,
+          Math.max(0, (Number(segStart + (i + 1) * wordDur) - Number(clipStartTime)) / speed),
+          Number(duration / speed) - 0.1,
         );
 
-        if (adjEnd <= 0 || adjStart >= Number(duration)) continue;
+        if (adjEnd <= 0 || adjStart >= Number(duration / speed)) continue;
 
         timedWords.push({
           text: word,
@@ -98,12 +99,12 @@ function buildTextBlocks(
   } else {
     const normalizedFallback = normalizeText(fallbackTranscript);
     const words = normalizedFallback.trim().split(/\s+/).filter(Boolean);
-    const timePerWord = Number(duration) / (words.length || 1);
+    const timePerWord = Number(duration / speed) / (words.length || 1);
     words.forEach((word, i) => {
       timedWords.push({
         text: word,
         start: i * timePerWord,
-        end: Math.min((i + 1) * timePerWord, Number(duration) - 0.1),
+        end: Math.min((i + 1) * timePerWord, Number(duration / speed) - 0.1),
       });
     });
   }
@@ -140,7 +141,7 @@ function buildTextBlocks(
   });
 
   if (blocks.length > 0) {
-    blocks[blocks.length - 1].end = Number(duration) - 0.1;
+    blocks[blocks.length - 1].end = Number(duration / speed) - 0.1;
     const last = blocks[blocks.length - 1];
     console.log(
       `[drawtext] Bloques: ${blocks.length} | Duracion clip: ${duration.toFixed(3)}s | Bloque final: ${last.start.toFixed(3)}s - ${last.end.toFixed(3)}s`,
@@ -188,6 +189,7 @@ function buildFilterGraph(
   aspectRatio: keyof typeof ASPECT_CONFIG,
   subtitleStyle: string,
   drawtextChain: string,
+  speed: number,
 ): { filterGraph: string; mapVideo: string } {
   const { width: outW, height: outH } = ASPECT_CONFIG[aspectRatio];
   const parts: string[] = [];
@@ -199,11 +201,21 @@ function buildFilterGraph(
   parts.push(`[composed]eq=contrast=1.05:brightness=0.02:saturation=1.1[graded]`);
 
   if (subtitleStyle !== 'none' && drawtextChain) {
-    parts.push(`[graded]${drawtextChain}[vout]`);
+    parts.push(`[graded]${drawtextChain}[post_text]`);
+    if (speed > 1) {
+      parts.push(`[post_text]setpts=${(1 / speed).toFixed(6)}*PTS[vout]`);
+    } else {
+      parts.push(`[post_text]copy[vout]`);
+    }
     return { filterGraph: parts.join(';'), mapVideo: '[vout]' };
   }
 
-  return { filterGraph: parts.join(';'), mapVideo: '[graded]' };
+  if (speed > 1) {
+    parts.push(`[graded]setpts=${(1 / speed).toFixed(6)}*PTS[vout]`);
+  } else {
+    parts.push(`[graded]copy[vout]`);
+  }
+  return { filterGraph: parts.join(';'), mapVideo: '[vout]' };
 }
 
 export interface RenderClipOptions {
@@ -220,6 +232,7 @@ export interface RenderClipOptions {
   keywords?: string[];
   subtitleSize?: 'Mediana' | 'Grande';
   isUppercase?: boolean;
+  speed?: number;
   transcriptSegments?: { text: string; startTime: number; endTime: number }[];
 }
 
@@ -237,6 +250,7 @@ export async function renderClip(options: RenderClipOptions): Promise<void> {
     subtitlesPreset = 'preset1',
     subtitleSize = 'Mediana',
     isUppercase = false,
+    speed = 1,
     transcriptSegments,
   } = options;
 
@@ -257,6 +271,7 @@ export async function renderClip(options: RenderClipOptions): Promise<void> {
       transcript,
       duration,
       clipStart,
+      speed,
       isUppercase,
       subtitlesPreset,
     );
@@ -264,7 +279,9 @@ export async function renderClip(options: RenderClipOptions): Promise<void> {
     drawtextChain = buildDrawtextChain(blocks, subtitlesPosition, subtitleSize);
   }
 
-  const { filterGraph, mapVideo } = buildFilterGraph(aspectRatio, subtitleStyle, drawtextChain);
+  const { filterGraph, mapVideo } = buildFilterGraph(aspectRatio, subtitleStyle, drawtextChain, speed);
+
+  const speedArgs = speed > 1 ? ['-af', `atempo=${speed}`] : [];
 
   const args: string[] = [
     '-ss',
@@ -279,6 +296,7 @@ export async function renderClip(options: RenderClipOptions): Promise<void> {
     mapVideo,
     '-map',
     '0:a?',
+    ...speedArgs,
     '-async',
     '1',
     '-c:v',

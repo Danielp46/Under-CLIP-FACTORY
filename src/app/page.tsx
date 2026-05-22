@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import VideoUploader from '@/components/VideoUploader';
+import VideoEditor from '@/components/VideoEditor';
 import ClipSettings from '@/components/ClipSettings';
 import JobQueue from '@/components/JobQueue';
 import Header from '@/components/Header';
@@ -31,6 +32,8 @@ export type ClipSettings = {
   maxClips: number;
   minDuration: number;
   maxDuration: number;
+  isFullVideo: boolean;
+  speed: number;
   aspectRatio: '9:16' | '1:1' | '4:5';
   subtitleStyle: 'dynamic' | 'static' | 'none';
   subtitleSize: 'Mediana' | 'Grande';
@@ -54,6 +57,8 @@ const FALLBACK_SETTINGS: ClipSettings = {
   maxClips:      5,
   minDuration:   30,
   maxDuration:   90,
+  isFullVideo:   false,
+  speed:         1,
   aspectRatio:   '9:16',
   subtitleStyle: 'dynamic',
   subtitleSize:  'Mediana',
@@ -68,7 +73,7 @@ const FALLBACK_SETTINGS: ClipSettings = {
 export default function Home() {
   const [jobs, setJobs]           = useState<Job[]>([]);
   const [settings, setSettings]   = useState<ClipSettings>(FALLBACK_SETTINGS);
-  const [activeTab, setActiveTab] = useState<'upload' | 'queue' | 'settings'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'editor' | 'queue' | 'settings'>('upload');
   const [configLoaded, setConfigLoaded] = useState(false);
 
   // ── Pre-load default provider from server on first mount ────────
@@ -159,6 +164,10 @@ export default function Home() {
                 onJobUpdate={updateJob}
               />
             </div>
+          )}
+
+          {activeTab === 'editor' && (
+            <VideoEditor />
           )}
 
           {activeTab === 'queue' && (

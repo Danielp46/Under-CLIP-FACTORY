@@ -35,7 +35,9 @@ export default function VideoUploader({ settings, onSettingsChange, onJobCreated
   const [videoMeta, setVideoMeta] = useState<{ duration: number; width: number; height: number } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
 
   const set = <K extends keyof ClipSettings>(key: K, value: ClipSettings[K]) => {
     onSettingsChange?.({ ...settings, [key]: value });
@@ -53,6 +55,8 @@ export default function VideoUploader({ settings, onSettingsChange, onJobCreated
     if (err) { setError(err); return; }
 
     setFile(f);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(URL.createObjectURL(f));
     // Extract video metadata via browser
     const url = URL.createObjectURL(f);
     const vid = document.createElement('video');
@@ -62,7 +66,7 @@ export default function VideoUploader({ settings, onSettingsChange, onJobCreated
       URL.revokeObjectURL(url);
     };
     vid.src = url;
-  }, []);
+  }, [previewUrl]);
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -85,6 +89,9 @@ export default function VideoUploader({ settings, onSettingsChange, onJobCreated
       formData.append('subtitlesPreset', settings.subtitlesPreset);
       formData.append('subtitleSize', settings.subtitleSize);
       formData.append('isUppercase', String(settings.isUppercase));
+      formData.append('language', settings.language);
+      formData.append('isFullVideo', String(settings.isFullVideo));
+      formData.append('speed', String(settings.speed));
       
       // Incluimos explicitamente todo settings en el formData, incluyendo subtítulos
       formData.append('settings', JSON.stringify(settings));
@@ -115,11 +122,47 @@ export default function VideoUploader({ settings, onSettingsChange, onJobCreated
       {/* Title */}
       <div className="animate-slide-up">
         <h2 className="text-2xl font-bold text-white">
-          Subir <span className="gradient-text">Vídeo</span>
+          Generar <span className="gradient-text">Short</span>
         </h2>
         <p className="text-gray-400 text-sm mt-1">
           Sube tu vídeo largo y la IA extraerá los mejores clips verticales automáticamente.
         </p>
+        <div className="mt-4 max-w-xs">
+          <label className="text-sm text-gray-300 font-medium">Idioma</label>
+          <select
+            value={settings.language}
+            onChange={(e) => set('language', e.target.value)}
+            className="input-base mt-2"
+          >
+            <option value="es">Español (es)</option>
+            <option value="en">English (en)</option>
+          </select>
+        </div>
+        <div className="mt-4 max-w-xs">
+          <label className="text-sm text-gray-300 font-medium">Velocidad</label>
+          <select
+            value={String(settings.speed)}
+            onChange={(e) => {
+              const speed = Number(e.target.value);
+              set('speed', speed);
+              if (previewVideoRef.current) previewVideoRef.current.playbackRate = speed;
+            }}
+            className="input-base mt-2"
+          >
+            {[1, 1.1, 1.2, 1.3, 1.4, 1.5].map((value) => (
+              <option key={value} value={value}>{value}x</option>
+            ))}
+          </select>
+        </div>
+        <label className="mt-4 flex items-center gap-2 text-sm text-gray-300">
+          <input
+            type="checkbox"
+            checked={settings.isFullVideo}
+            onChange={(e) => set('isFullVideo', e.target.checked)}
+            className="accent-brand-500"
+          />
+          Generar video completo
+        </label>
       </div>
 
       {/* Drop zone */}
@@ -176,7 +219,13 @@ export default function VideoUploader({ settings, onSettingsChange, onJobCreated
               </div>
             </div>
             <button
-              onClick={(e) => { e.stopPropagation(); setFile(null); setVideoMeta(null); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setFile(null);
+                setVideoMeta(null);
+                if (previewUrl) URL.revokeObjectURL(previewUrl);
+                setPreviewUrl(null);
+              }}
               className="text-xs text-gray-500 hover:text-red-400 transition-colors"
             >
               Cambiar archivo
@@ -184,6 +233,21 @@ export default function VideoUploader({ settings, onSettingsChange, onJobCreated
           </div>
         )}
       </div>
+
+      {previewUrl && (
+        <div className="card p-4">
+          <p className="text-sm text-gray-300 mb-2">Previsualizacion de audio/video</p>
+          <video
+            ref={previewVideoRef}
+            controls
+            src={previewUrl}
+            className="w-full rounded-lg"
+            onLoadedMetadata={() => {
+              if (previewVideoRef.current) previewVideoRef.current.playbackRate = settings.speed;
+            }}
+          />
+        </div>
+      )}
 
       {/* Error */}
       {error && (
@@ -384,35 +448,43 @@ export default function VideoUploader({ settings, onSettingsChange, onJobCreated
       </Section>
 
       {/* ── Clip parameters ──────────────────────────────────────── */}
-      <Section title="Parámetros de Clips" icon={Settings2}>
-        <Field label="Número máximo de clips" hint={`${settings.maxClips} clips`}>
+      <Section title="Parametros de Clips" icon={Settings2}>
+  {settings.isFullVideo ? (
+    <p className="text-sm text-gray-400">
+      Modo video completo activo: se generara un unico clip desde 0s hasta la duracion total.
+    </p>
+  ) : (
+    <>
+      <Field label="Numero maximo de clips" hint={`${settings.maxClips} clips`}>
+        <input
+          type="range" min={1} max={20} value={settings.maxClips}
+          onChange={e => set('maxClips', parseInt(e.target.value))}
+          className="w-full accent-brand-500"
+        />
+        <div className="flex justify-between text-xs text-gray-600 font-mono mt-1">
+          <span>1</span><span>5</span><span>10</span><span>15</span><span>20</span>
+        </div>
+      </Field>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Duracion minima" hint={`${settings.minDuration}s`}>
           <input
-            type="range" min={1} max={20} value={settings.maxClips}
-            onChange={e => set('maxClips', parseInt(e.target.value))}
+            type="range" min={10} max={60} value={settings.minDuration}
+            onChange={e => set('minDuration', parseInt(e.target.value))}
             className="w-full accent-brand-500"
           />
-          <div className="flex justify-between text-xs text-gray-600 font-mono mt-1">
-            <span>1</span><span>5</span><span>10</span><span>15</span><span>20</span>
-          </div>
         </Field>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Duración mínima" hint={`${settings.minDuration}s`}>
-            <input
-              type="range" min={10} max={60} value={settings.minDuration}
-              onChange={e => set('minDuration', parseInt(e.target.value))}
-              className="w-full accent-brand-500"
-            />
-          </Field>
-          <Field label="Duración máxima" hint={`${settings.maxDuration}s`}>
-            <input
-              type="range" min={30} max={180} value={settings.maxDuration}
-              onChange={e => set('maxDuration', parseInt(e.target.value))}
-              className="w-full accent-brand-500"
-            />
-          </Field>
-        </div>
-      </Section>
+        <Field label="Duracion maxima" hint={`${settings.maxDuration}s`}>
+          <input
+            type="range" min={30} max={180} value={settings.maxDuration}
+            onChange={e => set('maxDuration', parseInt(e.target.value))}
+            className="w-full accent-brand-500"
+          />
+        </Field>
+      </div>
+    </>
+  )}
+</Section>
 
       {/* ── Format ───────────────────────────────────────────────── */}
       <Section title="Formato de Salida" icon={Ratio}>
@@ -464,9 +536,10 @@ export default function VideoUploader({ settings, onSettingsChange, onJobCreated
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Configuración activa</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Clips', value: settings.maxClips },
+            { label: 'Clips', value: settings.isFullVideo ? 'Completo' : settings.maxClips },
             { label: 'Ratio', value: settings.aspectRatio },
             { label: 'Duración', value: `${settings.minDuration}–${settings.maxDuration}s` },
+            { label: 'Velocidad', value: `${settings.speed}x` },
             { label: 'IA', value: settings.aiProvider.toUpperCase() },
           ].map(({ label, value }) => (
             <div key={label} className="bg-surface-700 rounded-lg p-2.5 text-center">
@@ -510,3 +583,5 @@ function Field({ label, hint, children }: {
     </div>
   );
 }
+
+

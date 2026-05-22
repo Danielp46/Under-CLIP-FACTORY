@@ -15,6 +15,9 @@ export async function POST(request: NextRequest) {
     const subtitlesPosition = formData.get('subtitlesPosition') as string | null;
     const subtitlesPreset = formData.get('subtitlesPreset') as string | null;
     const subtitleSize = formData.get('subtitleSize') as string | null;
+    const language = formData.get('language') as string | null;
+    const isFullVideoRaw = formData.get('isFullVideo') as string | null;
+    const speedRaw = formData.get('speed') as string | null;
     const isUppercaseRaw = formData.get('isUppercase') as string | null;
     const isUppercase = isUppercaseRaw === 'true';
 
@@ -28,6 +31,12 @@ export async function POST(request: NextRequest) {
     if (subtitlesPosition) settings.subtitlesPosition = subtitlesPosition;
     if (subtitlesPreset) settings.subtitlesPreset = subtitlesPreset;
     if (subtitleSize === 'Mediana' || subtitleSize === 'Grande') settings.subtitleSize = subtitleSize;
+    if (language === 'es' || language === 'en') settings.language = language;
+    settings.isFullVideo = isFullVideoRaw === 'true';
+    if (speedRaw) {
+      const speed = Number(speedRaw);
+      if (!Number.isNaN(speed) && speed >= 1 && speed <= 1.5) settings.speed = speed;
+    }
     settings.isUppercase = isUppercase;
 
     const jobId = uuidv4();
