@@ -33,6 +33,8 @@ export type ClipSettings = {
   maxDuration: number;
   aspectRatio: '9:16' | '1:1' | '4:5';
   subtitleStyle: 'dynamic' | 'static' | 'none';
+  subtitleSize: 'Mediana' | 'Grande';
+  isUppercase: boolean;
   aiProvider: 'gemini' | 'openai' | 'groq' | 'openrouter';
   aiModel: string;
   language: string;
@@ -54,6 +56,8 @@ const FALLBACK_SETTINGS: ClipSettings = {
   maxDuration:   90,
   aspectRatio:   '9:16',
   subtitleStyle: 'dynamic',
+  subtitleSize:  'Mediana',
+  isUppercase:   false,
   aiProvider:    'gemini',
   aiModel:       'gemini-2.0-flash',
   language:      'es',

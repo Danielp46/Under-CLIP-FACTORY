@@ -14,6 +14,9 @@ export async function POST(request: NextRequest) {
     const settingsRaw = formData.get('settings') as string | null;
     const subtitlesPosition = formData.get('subtitlesPosition') as string | null;
     const subtitlesPreset = formData.get('subtitlesPreset') as string | null;
+    const subtitleSize = formData.get('subtitleSize') as string | null;
+    const isUppercaseRaw = formData.get('isUppercase') as string | null;
+    const isUppercase = isUppercaseRaw === 'true';
 
     console.log('Recibido en Backend:', subtitlesPosition, subtitlesPreset);
 
@@ -24,6 +27,8 @@ export async function POST(request: NextRequest) {
     const settings = settingsRaw ? JSON.parse(settingsRaw) : {};
     if (subtitlesPosition) settings.subtitlesPosition = subtitlesPosition;
     if (subtitlesPreset) settings.subtitlesPreset = subtitlesPreset;
+    if (subtitleSize === 'Mediana' || subtitleSize === 'Grande') settings.subtitleSize = subtitleSize;
+    settings.isUppercase = isUppercase;
 
     const jobId = uuidv4();
 

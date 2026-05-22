@@ -83,6 +83,8 @@ export default function VideoUploader({ settings, onSettingsChange, onJobCreated
       console.log('Enviando:', settings.subtitlesPosition, settings.subtitlesPreset);
       formData.append('subtitlesPosition', settings.subtitlesPosition);
       formData.append('subtitlesPreset', settings.subtitlesPreset);
+      formData.append('subtitleSize', settings.subtitleSize);
+      formData.append('isUppercase', String(settings.isUppercase));
       
       // Incluimos explicitamente todo settings en el formData, incluyendo subtítulos
       formData.append('settings', JSON.stringify(settings));
@@ -273,6 +275,37 @@ export default function VideoUploader({ settings, onSettingsChange, onJobCreated
                       </button>
                     ))}
                   </div>
+                </Field>
+
+                <Field label="Tamano de subtitulo" hint={settings.subtitleSize}>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['Mediana', 'Grande'] as const).map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => set('subtitleSize', size)}
+                        className={`py-2 px-2 rounded-lg text-xs font-bold transition-all border ${
+                          settings.subtitleSize === size
+                            ? 'bg-brand-500/20 border-brand-500/50 text-brand-300'
+                            : 'bg-surface-700 border-white/5 hover:border-white/10 text-gray-400'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+
+                <Field label="Todo Mayusculas" hint={settings.isUppercase ? 'Activado' : 'Desactivado'}>
+                  <label className="flex items-center gap-2 text-sm text-gray-300">
+                    <input
+                      type="checkbox"
+                      checked={settings.isUppercase}
+                      onChange={(e) => set('isUppercase', e.target.checked)}
+                      className="accent-brand-500"
+                    />
+                    Activar mayusculas en subtitulos
+                  </label>
                 </Field>
               </>
             )}

@@ -17,6 +17,8 @@ export interface ProcessingSettings {
   maxDuration: number;
   aspectRatio: '9:16' | '1:1' | '4:5';
   subtitleStyle: 'dynamic' | 'static' | 'none';
+  subtitleSize?: 'Mediana' | 'Grande';
+  isUppercase?: boolean;
   aiProvider: 'gemini' | 'openai' | 'groq' | 'openrouter';
   aiModel: string;
   language: string;
@@ -69,6 +71,8 @@ export async function processVideo(
     maxDuration:   settings.maxDuration   ?? 90,
     aspectRatio:   settings.aspectRatio   ?? '9:16',
     subtitleStyle: settings.subtitleStyle ?? 'dynamic',
+    subtitleSize:  settings.subtitleSize  ?? 'Mediana',
+    isUppercase:   settings.isUppercase   ?? false,
     aiProvider:    settings.aiProvider    ?? 'gemini',
     aiModel:       settings.aiModel       ?? 'gemini-2.0-flash',
     language:      settings.language      ?? 'es',
@@ -117,6 +121,8 @@ export async function processVideo(
         transcriptSegments: seg.transcriptSegments || [],
         subtitlesPosition: cfg.subtitlesPosition,
         subtitlesPreset: cfg.subtitlesPreset,
+        subtitleSize: cfg.subtitleSize,
+        isUppercase: cfg.isUppercase,
       });
 
       renderedClips.push({ ...seg, id: clipId, outputPath, keywords: seg.keywords || [] });
